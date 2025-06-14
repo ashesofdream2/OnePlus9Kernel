@@ -8,7 +8,7 @@ setup_export() {
     export LC_ALL=C
     export SOURCE_PATH=$PWD
     export CLANG_PATH=$SOURCE_PATH/prebuilts-master/clang/host/linux-x86/clang-r450784d/
-    export CONFIG_KERNELSU=true     # Optional values: true/false
+    export CONFIG_KERNELSU=false     # Optional values: true/false
     export KERNELSU_TAG=main        # Optional values: main/NULL/'v\d+(\.\d+)*'
     export CONFIG_DOCKER=false      # Optional values: true/false
     export CONFIG_ROOTGUARD=false   # Optional values: true/false
@@ -41,6 +41,7 @@ setup_environment() {
 }
 
 setup_kernelsu() {
+    echo "kernelsu begin"
     cd $SOURCE_PATH/kernel/msm-5.4
     curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s "$KERNELSU_TAG"
     # Apply patch for clang-17
@@ -60,6 +61,7 @@ setup_kernelsu() {
     do
         printf "\n$config_name\n" >> "arch/arm64/configs/vendor/lahaina_NQGKI.config"
     done
+    echo "kernelsu end"
 }
 
 docker_support() {
@@ -167,6 +169,8 @@ compile_rootguard() {
 }
 
 build_kernel() {
+
+    echo "build kernel begin"
     # cd $SOURCE_PATH/kernel/msm-5.4
     # wget https://gist.githubusercontent.com/natsumerinchan/77d5ad9ea42b5a1b4667de9f54c69d8e/raw/03cbe567e798cef5261f551668310067a878ffef/0003-Makefile-Use-CCACHE-for-faster-compilation.patch
     # git apply ./0003-Makefile-Use-CCACHE-for-faster-compilation.patch
@@ -174,6 +178,7 @@ build_kernel() {
     sed -i s/build-user/mvaisakh/g build/_setup_env.sh
     sed -i s/build-host/statixos/g build/_setup_env.sh
     time CCACHE="/usr/bin/ccache" BUILD_CONFIG=kernel/msm-5.4/build.config.msm.lahaina VARIANT=nqgki DEVICE=$DEVICE_NAME LTO=$CONFIG_LTO POLLY=1 BUILD_KERNEL=1 build/build.sh 2>&1 | tee compile.log
+    echo "build kernel end"
 }
 
 make_anykernel3_zip() {
