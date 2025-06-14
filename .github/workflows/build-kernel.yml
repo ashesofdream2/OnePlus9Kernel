@@ -7,73 +7,39 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: archlinux/archlinux:base-devel
-      options: --privileged
-
+    runs-on: ubuntu-latest  # 使用Ubuntu环境而非Arch Linux
+    
     steps:
-      - name: Install Git
+      - name: Install essential tools
         run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm git
+          sudo apt-get update
+          sudo apt-get install -y git python3 openjdk-11-jdk bc bison build-essential \
+            ccache curl flex g++-multilib gcc-multilib gnupg gperf imagemagick \
+            lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 \
+            libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync \
+            schedtool squashfs-tools xsltproc zip zlib1g-dev
+
+      - name: Install repo tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo 'export PATH=~/bin:$PATH' >> ~/.bashrc
+          source ~/.bashrc
+          repo --version
 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Enable multilib repository
+      - name: Set up ccache
         run: |
-          # 启用multilib仓库
-          sed -i 's/^#Include = /Include = /g' /etc/pacman.d/mirrorlist
-          sed -i 's/^#\s*\[multilib\]/[multilib]/g' /etc/pacman.conf
-          sed -i 's/^#\s*Include = \/etc\/pacman.d\/mirrorlist/Include = \/etc\/pacman.d\/mirrorlist/g' /etc/pacman.conf
-          pacman -Syy --noconfirm
-
-      - name: Install base and multilib dependencies
-        run: |
-          pacman -S --noconfirm base-devel python python3 curl wget zstd sudo
-          pacman -S --noconfirm --needed multilib-devel lib32-ncurses lib32-readline lib32-zlib
-
-      - name: Setup yay
-        run: |
-          useradd -m builder
-          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
-          sudo -u builder git clone https://aur.archlinux.org/yay.git /home/builder/yay
-          cd /home/builder/yay
-          sudo -u builder makepkg -si --noconfirm
-          cd "$GITHUB_WORKSPACE"
-
-      - name: 安装python2-bin（若需要）
-        run: |
-          if pacman -Qs python2-bin &>/dev/null; then
-            pacman -S --noconfirm python2-bin
-          else
-            sudo -u builder yay -S python2-bin --noconfirm
-          fi
-          cd "$GITHUB_WORKSPACE"
-
-      - name: Install repo tool
-        run: |
-          mkdir -p ~/bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-          chmod a+x ~/bin/repo
-          echo 'export PATH=~/bin:$PATH' >> ~/.bashrc
-          echo 'export PYTHON=/usr/bin/python3' >> ~/.bashrc  # 确保使用Python3
+          echo 'export USE_CCACHE=1' >> ~/.bashrc
+          echo 'export CCACHE_SIZE=50G' >> ~/.bashrc
+          ccache -M 50G
           source ~/.bashrc
-          repo --version
 
-
-
-      - name: Install repo tool
-        run: |
-          mkdir -p ~/bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-          chmod a+x ~/bin/repo
-          echo 'export PATH=~/bin:$PATH' >> ~/.bashrc
-          source ~/.bashrc
-          repo --version
 
       - name: Run kernel build script
         run: |
