@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: archlinux:base-devel
-      options: --privileged
+      options: --privileged --init -v /sys/fs/cgroup:/sys/fs/cgroup:ro -v /run:/run
 
     steps:
       - name: 初始化 Systemd 环境
