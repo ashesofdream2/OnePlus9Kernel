@@ -22,13 +22,27 @@ jobs:
           # 安装 repo 工具（明确设置 PATH 并验证）
           mkdir -p ~/bin
           curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-          chmod a+x ~/bin/repo
           sudo mv ~/bin/repo /usr/bin/repo
-          
+          chmod a+x /usr/bin/repo
+          chmod 777 /usr/bin/repo
           
           useradd -m builder
           echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
           
+      - name: 安装 yay-git
+        run: |
+          # 克隆仓库并安装
+          git clone https://aur.archlinux.org/yay-git.git
+          sudo mv yay-git /opt/
+          cd /opt/yay-git
+          sudo -u builder makepkg -si --noconfirm
+          
+          # 返回默认目录并验证
+          cd -
+          echo "当前路径: $(pwd)"
+          yay --version
+          yay -Syu --noconfirm
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
