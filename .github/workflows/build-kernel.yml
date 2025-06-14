@@ -34,7 +34,7 @@ jobs:
           # 克隆仓库并安装
           git clone https://aur.archlinux.org/yay-git.git
           cd yay-git
-          sudo -u builder makepkg -si --noconfirm
+          sudo makepkg -si --noconfirm
           
           # 返回默认目录并验证
           cd -
