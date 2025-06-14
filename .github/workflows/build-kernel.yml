@@ -29,7 +29,6 @@ jobs:
           sed -i '/\[multilib\]/,/Include/' -e 's/^#//' /etc/pacman.conf
           pacman -Syy --noconfirm
 
-
       - name: Install base and multilib dependencies
         run: |
           pacman -S --noconfirm base-devel python curl wget zstd sudo
