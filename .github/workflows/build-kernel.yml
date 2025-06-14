@@ -24,10 +24,8 @@ jobs:
           curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
           
-          # 临时生效 PATH（避免 .bashrc 未加载问题）
-          export PATH=~/bin:$PATH
-          echo "当前 PATH: $PATH"
-          repo --version  # 验证 repo 安装
+          # 将 PATH 设置添加到全局环境
+          echo 'PATH="$HOME/bin:$PATH"' | sudo tee -a /etc/environment
           
           useradd -m builder
           echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
@@ -40,10 +38,16 @@ jobs:
 
       - name: Execute build script
         run: |
-          # 为 builder 用户设置 PATH（关键修改）
-          echo 'export PATH=~/bin:$PATH' >> /home/builder/.bashrc
+          # 重新加载环境变量
+          source /etc/environment
+          
+          # 验证 builder 用户的 PATH 和 repo 命令
+          sudo -u builder bash -c 'echo "builder PATH: $PATH"'
+          sudo -u builder bash -c 'which repo'
+          sudo -u builder bash -c 'repo --version'
+          
           sudo chmod +x build.sh
-          sudo -u builder bash -c "source /home/builder/.bashrc && ./build.sh"
+          sudo -u builder bash -c "PATH=$PATH ./build.sh"
         env:
           CONFIG_KERNELSU: true
           KERNELSU_TAG: main
