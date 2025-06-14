@@ -38,7 +38,9 @@ jobs:
           sudo -u builder git clone https://aur.archlinux.org/yay.git /home/builder/yay
           cd /home/builder/yay
           sudo -u builder makepkg -si --noconfirm
-          cd /github/workspace
+          cd "$GITHUB_WORKSPACE"  # 确保回到工作目录
+          pwd  # 打印当前目录，用于调试
+          ls -la  # 列出目录内容，用于调试
 
       - name: Run kernel build script
         run: |
