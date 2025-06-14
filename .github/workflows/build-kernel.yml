@@ -13,10 +13,6 @@ jobs:
       options: --privileged
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Install dependencies
         run: |
@@ -30,6 +26,12 @@ jobs:
           source ~/.bashrc
           useradd -m builder
           echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
 
       - name: Execute build script
         run: |
