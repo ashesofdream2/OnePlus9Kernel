@@ -35,15 +35,20 @@ jobs:
       options: --privileged
 
     steps:
-      - name: Configure Systemd
+      - name: 初始化 Systemd 环境
         run: |
-          # 安装必要的工具
-          sudo apt-get update
-          sudo apt-get install -y systemd-container
-
-          # 创建systemd所需的目录结构
-          sudo mkdir -p /run/systemd/system
-          sudo touch /run/systemd/system/container.conf
+          # 安装必要的 systemd 组件
+          pacman -Syu --noconfirm systemd systemd-container dbus
+          
+          # 配置容器环境
+          echo "nameserver 8.8.8.8" > /etc/resolv.conf
+          
+          # 启动关键服务
+          systemctl --version
+          systemctl start dbus
+          
+          # 验证 systemd 状态
+          systemctl status
 
       - name: 安装基础工具和 SSH 客户端
         run: |
