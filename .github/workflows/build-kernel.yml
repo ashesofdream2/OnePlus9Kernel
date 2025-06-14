@@ -26,34 +26,42 @@ on:
         description: 'LTO 类型 (none/thin/full)'
         required: true
         default: 'full'
-
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: archlinux:base-devel
-      options: --privileged --init -v /sys/fs/cgroup:/sys/fs/cgroup:ro -v /run:/run
-
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: 初始化 Systemd 环境
+      - name: 安装必要工具
         run: |
-          # 安装必要的 systemd 组件
-          pacman -Syu --noconfirm systemd dbus
+          sudo apt-get update
+          sudo apt-get install -y systemd-container dbus socat
           
-          # 配置容器环境
-          echo "nameserver 8.8.8.8" > /etc/resolv.conf
+      - name: 配置 systemd 环境
+        run: |
+          # 创建必要的目录
+          sudo mkdir -p /run/systemd/system
+          sudo touch /run/systemd/no-sysv-init
           
-          # 启动关键服务
-          systemctl --version
-          systemctl start dbus
+          # 启动 systemd 服务
+          sudo systemctl start dbus
+          sudo systemctl enable dbus
           
           # 验证 systemd 状态
-          systemctl status
-
-      - name: 安装基础工具和 SSH 客户端
+          systemctl --version
+          systemctl status dbus
+          
+          # 确认 PID 1 是 systemd
+          ps -p 1
+      
+      - name: 安装 Arch Linux 工具链
         run: |
-          pacman -Syu --noconfirm
-          pacman -S git wget curl python3 openssh --noconfirm
+          # 如果你需要在 Ubuntu 中使用 Arch 的包管理器，可以使用 arch-install-scripts
+          sudo apt-get install -y arch-install-scripts
+          
+          # 或者直接使用 Ubuntu 包管理器安装必要工具
+          sudo apt-get install -y git wget curl python3 openssh
           
       - name: 安装 repo 工具
         run: |
