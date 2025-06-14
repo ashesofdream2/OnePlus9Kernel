@@ -59,7 +59,9 @@ jobs:
         run: |
           useradd -m builder
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-          chown -R builder:builder /github/workspace
+          mkdir -p /workspace
+          chown -R builder:builder /workspace
+        working-directory: /workspace
 
       - name: 克隆仓库
         run: |
