@@ -23,16 +23,6 @@ jobs:
         with:
           submodules: recursive
           
-      - name: Enable multilib repository
-        run: |
-          sed -i 's/^#Include = /Include = /g' /etc/pacman.d/mirrorlist
-          sed -i '/\[multilib\]/,/Include/' -e 's/^#//' /etc/pacman.conf
-          pacman -Syy --noconfirm
-
-      - name: Install base and multilib dependencies
-        run: |
-          pacman -S --noconfirm base-devel python curl wget zstd sudo
-          pacman -S --noconfirm --needed multilib-devel lib32-ncurses lib32-readline lib32-zlib
 
       - name: Setup yay
         run: |
@@ -43,10 +33,6 @@ jobs:
           sudo -u builder makepkg -si --noconfirm
           cd "$GITHUB_WORKSPACE"
 
-      - name: Install lineageos-devel (AUR package)
-        run: |
-          sudo -u builder yay -S lineageos-devel python2-bin --noconfirm
-          cd "$GITHUB_WORKSPACE"
 
       - name: Install repo tool
         run: |
