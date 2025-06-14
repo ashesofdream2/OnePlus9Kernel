@@ -47,6 +47,11 @@ jobs:
       options: --privileged -v /workspace:/workspace
 
     steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          path: /workspace
+          
       - name: 安装基础工具和 repo
         run: |
           pacman -Syu --noconfirm git base-devel wget curl openssh ccache python3 which
