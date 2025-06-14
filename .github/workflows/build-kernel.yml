@@ -54,6 +54,7 @@ jobs:
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
           echo "~/bin" >> $GITHUB_PATH
+        working-directory: /workspace
 
       - name: 设置用户和工作目录
         run: |
@@ -62,6 +63,7 @@ jobs:
           mkdir -p /workspace
           chown -R builder:builder /workspace
           ls -la /
+        working-directory: /workspace
 
       - name: 克隆仓库
         run: |
@@ -69,13 +71,13 @@ jobs:
           cd kernel_manifest
           sudo -u builder repo init -u https://github.com/mvaisakh/android_kernel_manifest -b eva-oneplus-5.4 --depth=1
           sudo -u builder repo sync --no-tags --no-clone-bundle -j$(nproc --all)
-        working-directory: /github/workspace
+        working-directory: /workspace
 
       - name: 准备环境变量
         run: |
           echo "LC_ALL=C" >> $GITHUB_ENV
-          echo "SOURCE_PATH=/github/workspace/kernel_manifest" >> $GITHUB_ENV
-          echo "CLANG_PATH=/github/workspace/kernel_manifest/prebuilts-master/clang/host/linux-x86/clang-r450784d" >> $GITHUB_ENV
+          echo "SOURCE_PATH=/workspace/kernel_manifest" >> $GITHUB_ENV
+          echo "CLANG_PATH=/workspace/kernel_manifest/prebuilts-master/clang/host/linux-x86/clang-r450784d" >> $GITHUB_ENV
           echo "CONFIG_KERNELSU=${{ github.event.inputs.enable_kernelsu }}" >> $GITHUB_ENV
           echo "KERNELSU_TAG=main" >> $GITHUB_ENV
           echo "CONFIG_DOCKER=${{ github.event.inputs.enable_docker }}" >> $GITHUB_ENV
@@ -84,7 +86,8 @@ jobs:
           echo "CONFIG_LTO=${{ github.event.inputs.lto_type }}" >> $GITHUB_ENV
           echo "USE_CCACHE=1" >> $GITHUB_ENV
           echo "CCACHE_MAXSIZE=5G" >> $GITHUB_ENV
-          echo "CCACHE_DIR=/github/workspace/ccache" >> $GITHUB_ENV
+          echo "CCACHE_DIR=/workspace/ccache" >> $GITHUB_ENV
+        working-directory: /workspace
 
       - name: 设置 ccache
         uses: hendrikmuhs/ccache-action@v1.2
@@ -99,15 +102,18 @@ jobs:
           sudo -u builder ./build.sh
         env:
           MAKEFLAGS: "-j$(nproc --all)"
+        working-directory: /workspace
 
       - name: 显示 ccache 统计信息
         run: ccache -s
+        working-directory: /workspace
 
       - name: 查找编译结果
         id: find_artifacts
         run: |
           echo "zip_file=$(ls $SOURCE_PATH/*.zip | grep -v backup || true)" >> $GITHUB_OUTPUT
           echo "rootguard_file=$(ls $SOURCE_PATH/rootguard-*.zip || true)" >> $GITHUB_OUTPUT
+        working-directory: /workspace
 
       - name: 上传编译结果
         uses: actions/upload-artifact@v4
