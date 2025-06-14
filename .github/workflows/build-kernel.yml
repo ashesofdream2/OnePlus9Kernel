@@ -43,7 +43,7 @@ jobs:
           # 为 builder 用户设置 PATH（关键修改）
           echo 'export PATH=~/bin:$PATH' >> /home/builder/.bashrc
           sudo chmod +x build.sh
-          sudo -u builder bash -c "source /home/builder/.bashrc && bash ./build.sh"
+          sudo -u builder bash -c "source /home/builder/.bashrc && ./build.sh"
         env:
           CONFIG_KERNELSU: true
           KERNELSU_TAG: main
