@@ -1,116 +1,85 @@
 name: Kernel Build
 
 on:
-  workflow_dispatch:
-    inputs:
-      device_name:
-        description: '设备名称 (9P/9RT/LUNAA)'
-        required: true
-        default: 'LUNAA'
-      enable_kernelsu:
-        description: '启用 KernelSU'
-        required: true
-        default: 'true'
-        type: boolean
-      enable_docker:
-        description: '启用 Docker 支持'
-        required: true
-        default: 'false'
-        type: boolean
-      enable_rootguard:
-        description: '启用 RootGuard'
-        required: true
-        default: 'false'
-        type: boolean
-      lto_type:
-        description: 'LTO 类型 (none/thin/full)'
-        required: true
-        default: 'full'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # 允许手动触发
+
 jobs:
   build:
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: 安装必要工具
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y systemd-container dbus socat openssh-client
-          
-      - name: 配置 systemd 环境
-        run: |
-          # 创建必要的目录
-          sudo mkdir -p /run/systemd/system
-          sudo touch /run/systemd/no-sysv-init
-          
-          # 启动 systemd 服务
-          sudo systemctl start dbus
-          sudo systemctl enable dbus
-          
-          # 验证 systemd 状态
-          systemctl --version
-          systemctl status dbus
-          
-          # 确认 PID 1 是 systemd
-          ps -p 1
-      
-      - name: 安装 Arch Linux 工具链
-        run: |
-          # 如果你需要在 Ubuntu 中使用 Arch 的包管理器，可以使用 arch-install-scripts
-          sudo apt-get install -y arch-install-scripts
-          
-          # 或者直接使用 Ubuntu 包管理器安装必要工具
-          sudo apt-get install -y git wget curl python3
-          
-      - name: 安装 repo 工具
-        run: |
-          mkdir -p ~/bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-          chmod a+x ~/bin/repo
-          echo "$HOME/bin" >> $GITHUB_PATH
-          
-      - name: 安装yay（使用root权限直接编译）
-        run: |
-          # 克隆yay仓库
-          git clone https://aur.archlinux.org/yay.git
-          cd yay
-          
-          # 直接使用root权限编译安装
-          makepkg -si --noconfirm
-          
-          # 清理
-          cd ..
-          rm -rf yay
+    runs-on: ubuntu-latest
+    container: 
+      image: archlinux:latest
+      options: --privileged  # 需要特权模式用于内核编译
 
-      
-      - name: 克隆仓库
-        uses: actions/checkout@v4
-        with:
-          path: source
-      
-      - name: 设置环境变量
-        run: |
-          echo "SOURCE_PATH=$(pwd)/source" >> $GITHUB_ENV
-          echo "CLANG_PATH=$(pwd)/source/prebuilts-master/clang/host/linux-x86/clang-r450784d/" >> $GITHUB_ENV
-          echo "CONFIG_KERNELSU=${{ github.event.inputs.enable_kernelsu }}" >> $GITHUB_ENV
-          echo "KERNELSU_TAG=main" >> $GITHUB_ENV
-          echo "CONFIG_DOCKER=${{ github.event.inputs.enable_docker }}" >> $GITHUB_ENV
-          echo "CONFIG_ROOTGUARD=${{ github.event.inputs.enable_rootguard }}" >> $GITHUB_ENV
-          echo "DEVICE_NAME=${{ github.event.inputs.device_name }}" >> $GITHUB_ENV
-          echo "CONFIG_LTO=${{ github.event.inputs.lto_type }}" >> $GITHUB_ENV
-      
-      - name: 执行 build.sh 脚本
-        run: |
-          cd $SOURCE_PATH
-          chmod +x build.sh
-          ./build.sh
-      
-      - name: 查找并上传编译产物
-        uses: actions/upload-artifact@v4
-        with:
-          name: kernel-build-artifacts
-          path: |
-            $SOURCE_PATH/*.zip
-            $SOURCE_PATH/compile.log
-          retention-days: 7    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Setup Environment
+      run: |
+        pacman -Syu --noconfirm
+        pacman -S --noconfirm \
+          git curl wget tar zstd base-devel \
+          python2 ccache clang lld llvm \
+          lib32-ncurses lib32-readline lib32-zlib \
+          ncurses5-compat-libs
+
+    - name: Install AUR Helper
+      run: |
+        git clone https://aur.archlinux.org/yay.git
+        cd yay
+        makepkg -si --noconfirm
+        cd ..
+        rm -rf yay
+
+    - name: Setup Build Environment
+      run: |
+        chmod +x build.sh
+        ./build.sh setup_export
+
+    - name: Sync Kernel Source
+      run: |
+        ./build.sh sync_source
+
+    - name: Setup Dependencies
+      run: |
+        ./build.sh setup_environment
+
+    - name: Configure Kernel Features
+      run: |
+        if [ "$CONFIG_KERNELSU" = "true" ]; then
+          ./build.sh setup_kernelsu
+        fi
+        if [ "$CONFIG_DOCKER" = "true" ]; then
+          ./build.sh docker_support
+        fi
+        if [ "$CONFIG_ROOTGUARD" = "true" ]; then
+          ./build.sh compile_rootguard
+        fi
+
+    - name: Build Kernel
+      run: |
+        ./build.sh build_kernel
+
+    - name: Create AnyKernel3 Zip
+      run: |
+        ./build.sh make_anykernel3_zip
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: kernel-builds
+        path: |
+          *.zip
+          compile.log
+        retention-days: 30
+
+    - name: Clean Workspace
+      if: always()
+      run: |
+        rm -rf ./*
