@@ -23,9 +23,8 @@ jobs:
           mkdir -p ~/bin
           curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
+          sudo mv ~/bin/repo /usr/bin/repo
           
-          # 将 PATH 设置添加到全局环境
-          echo 'PATH="$HOME/bin:$PATH"' | sudo tee -a /etc/environment
           
           useradd -m builder
           echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
