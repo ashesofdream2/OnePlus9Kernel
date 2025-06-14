@@ -1,0 +1,54 @@
+name: Build Kernel
+
+on:
+  workflow_dispatch:  # 允许手动触发工作流
+  push:
+    branches: [ main ]  # 也可以在推送到主分支时触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux/archlinux:base-devel
+      options: --privileged  # 需要特权模式来安装某些依赖
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive  # 如果有子模块，递归检出
+
+      - name: Install base dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm base-devel git python curl wget zstd sudo
+
+      - name: Setup yay
+        run: |
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          sudo -u builder git clone https://aur.archlinux.org/yay.git /home/builder/yay
+          cd /home/builder/yay
+          sudo -u builder makepkg -si --noconfirm
+          cd /github/workspace
+
+      - name: Run kernel build script
+        run: |
+          chmod +x build.sh
+          ./build.sh
+        env:
+          CONFIG_KERNELSU: true
+          KERNELSU_TAG: main
+          CONFIG_DOCKER: false
+          CONFIG_ROOTGUARD: false
+          DEVICE_NAME: 9RT
+          CONFIG_LTO: full
+
+      - name: Upload kernel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-build
+          path: |
+            *.zip
+            compile.log
+          retention-days: 7  # 构建产物保留7天
