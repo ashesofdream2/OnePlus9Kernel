@@ -46,7 +46,7 @@ jobs:
           sudo -u builder bash -c 'repo --version'
           
           sudo chmod +x build.sh
-          sudo -u builder bash -c "PATH=$PATH ./build.sh"
+          sudo -u builder bash -c "sudo bash ./build.sh"
         env:
           CONFIG_KERNELSU: true
           KERNELSU_TAG: main
