@@ -1,16 +1,16 @@
 name: Build Kernel
 
 on:
-  workflow_dispatch:  # 允许手动触发工作流
+  workflow_dispatch:
   push:
-    branches: [ main ]  # 也可以在推送到主分支时触发
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     container:
       image: archlinux/archlinux:base-devel
-      options: --privileged  # 需要特权模式来安装某些依赖
+      options: --privileged
 
     steps:
       - name: Install Git
@@ -18,18 +18,15 @@ jobs:
           pacman -Syu --noconfirm
           pacman -S --noconfirm git
 
-      - name: Check Git version
-        run: git --version
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive  # 如果有子模块，递归检出
+          submodules: recursive
 
-      - name: Install base dependencies
+      - name: Install base and multilib dependencies
         run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm base-devel git python curl wget zstd sudo
+          pacman -S --noconfirm base-devel python curl wget zstd sudo
+          pacman -S --noconfirm --needed multilib-devel lib32-ncurses lib32-readline lib32-zlib
 
       - name: Setup yay
         run: |
@@ -38,10 +35,13 @@ jobs:
           sudo -u builder git clone https://aur.archlinux.org/yay.git /home/builder/yay
           cd /home/builder/yay
           sudo -u builder makepkg -si --noconfirm
-          cd "$GITHUB_WORKSPACE"  # 确保回到工作目录
-          pwd  # 打印当前目录，用于调试
-          ls -la  # 列出目录内容，用于调试
-          
+          cd "$GITHUB_WORKSPACE"
+
+      - name: Install lineageos-devel (AUR package)
+        run: |
+          sudo -u builder yay -S lineageos-devel python2-bin --noconfirm
+          cd "$GITHUB_WORKSPACE"
+
       - name: Install repo tool
         run: |
           mkdir -p ~/bin
@@ -49,13 +49,7 @@ jobs:
           chmod a+x ~/bin/repo
           echo 'export PATH=~/bin:$PATH' >> ~/.bashrc
           source ~/.bashrc
-          repo --version  # 验证安装
-
-      - name: Install lineageos-devel and python2-bin
-        run: |
-          sudo -u builder yay -S lineageos-devel python2-bin --noconfirm
-          cd "$GITHUB_WORKSPACE"
-
+          repo --version
 
       - name: Run kernel build script
         run: |
