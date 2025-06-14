@@ -25,9 +25,7 @@ jobs:
         pacman -Syu --noconfirm
         pacman -Syu --noconfirm \
           git curl wget tar zstd base-devel \
-          python2 ccache clang lld llvm \
-          lib32-ncurses lib32-readline lib32-zlib \
-          ncurses5-compat-libs
+          python3 ccache clang lld llvm 
 
     - name: Install AUR Helper
       run: |
