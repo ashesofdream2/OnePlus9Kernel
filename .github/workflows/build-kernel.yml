@@ -70,26 +70,19 @@ jobs:
           chmod a+x ~/bin/repo
           echo "$HOME/bin" >> $GITHUB_PATH
           
-      - name: 替代 yay 安装 AUR 包（方法一：使用 makepkg 直接安装）
+      - name: 安装yay（使用root权限直接编译）
         run: |
-          # 创建临时用户目录
-          mkdir -p /tmp/aur_builder
-          cd /tmp/aur_builder
-          
-          # 安装 yay 依赖
-          sudo apt-get install -y base-devel fakeroot
-          
-          # 克隆 yay 仓库
+          # 克隆yay仓库
           git clone https://aur.archlinux.org/yay.git
           cd yay
           
-          # 使用当前用户（runner）编译和安装
+          # 直接使用root权限编译安装
           makepkg -si --noconfirm
           
           # 清理
           cd ..
           rm -rf yay
-          cd ~
+
       
       - name: 克隆仓库
         uses: actions/checkout@v4
