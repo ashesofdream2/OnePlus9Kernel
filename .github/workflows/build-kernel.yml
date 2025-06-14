@@ -60,8 +60,9 @@ jobs:
           sudo -u builder bash -c 'which repo'
           sudo -u builder bash -c 'repo --version'
           
-          sudo chmod +x build.sh
-          sudo -u builder bash -c "sudo bash ./build.sh"
+          sudo chmod a+x build.sh
+          sudo chmod 777 build.sh
+          sudo -u builder bash -c "bash ./build.sh"
         env:
           CONFIG_KERNELSU: true
           KERNELSU_TAG: main
