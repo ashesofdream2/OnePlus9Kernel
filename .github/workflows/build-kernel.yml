@@ -1,83 +1,117 @@
-name: Kernel Build
+name: Build Kernel
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
+    inputs:
+      device:
+        description: '设备名称'
+        required: true
+        default: 'LUNAA'
+        type: choice
+        options:
+          - 9P
+          - 9RT
+          - LUNAA
+      enable_kernelsu:
+        description: '启用 KernelSU'
+        required: true
+        default: 'true'
+        type: boolean
+      enable_docker:
+        description: '启用 Docker 支持'
+        required: true
+        default: 'false'
+        type: boolean
+      enable_rootguard:
+        description: '启用 RootGuard'
+        required: true
+        default: 'false'
+        type: boolean
+      lto_type:
+        description: 'LTO 类型'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - none
+          - thin
+          - full
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: 
-      image: archlinux:latest
-      options: --cap-add=SYS_ADMIN --security-opt seccomp=unconfined
+    timeout-minutes: 360
+
+    container:
+      image: archlinux:base-devel
+      options: --privileged
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+      - name: 安装基础工具和 repo
+        run: |
+          pacman -Syu --noconfirm git base-devel wget curl openssh ccache python3 which
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "~/bin" >> $GITHUB_PATH
 
-    - name: Setup Environment
-      run: |
-        pacman -Syu --noconfirm
-        pacman -Syu --noconfirm \
-          git curl wget tar zstd base-devel \
-          python3 ccache clang lld llvm 
+      - name: 设置用户
+        run: |
+          useradd -m builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          chown -R builder:builder /github/workspace
 
-    - name: Install AUR Helper
-      run: |
-        git clone https://aur.archlinux.org/yay.git
-        cd yay
-        makepkg -si --noconfirm
-        cd ..
-        rm -rf yay
+      - name: 克隆仓库
+        run: |
+          sudo -u builder git clone https://github.com/mvaisakh/android_kernel_manifest -b eva-oneplus-5.4 kernel_manifest
+          cd kernel_manifest
+          sudo -u builder repo init -u https://github.com/mvaisakh/android_kernel_manifest -b eva-oneplus-5.4 --depth=1
+          sudo -u builder repo sync --no-tags --no-clone-bundle -j$(nproc --all)
+        working-directory: /github/workspace
 
-    - name: Setup Build Environment
-      run: |
-        chmod +x build.sh
-        ./build.sh setup_export
+      - name: 准备环境变量
+        run: |
+          echo "LC_ALL=C" >> $GITHUB_ENV
+          echo "SOURCE_PATH=/github/workspace/kernel_manifest" >> $GITHUB_ENV
+          echo "CLANG_PATH=/github/workspace/kernel_manifest/prebuilts-master/clang/host/linux-x86/clang-r450784d" >> $GITHUB_ENV
+          echo "CONFIG_KERNELSU=${{ github.event.inputs.enable_kernelsu }}" >> $GITHUB_ENV
+          echo "KERNELSU_TAG=main" >> $GITHUB_ENV
+          echo "CONFIG_DOCKER=${{ github.event.inputs.enable_docker }}" >> $GITHUB_ENV
+          echo "CONFIG_ROOTGUARD=${{ github.event.inputs.enable_rootguard }}" >> $GITHUB_ENV
+          echo "DEVICE_NAME=${{ github.event.inputs.device }}" >> $GITHUB_ENV
+          echo "CONFIG_LTO=${{ github.event.inputs.lto_type }}" >> $GITHUB_ENV
+          echo "USE_CCACHE=1" >> $GITHUB_ENV
+          echo "CCACHE_MAXSIZE=5G" >> $GITHUB_ENV
+          echo "CCACHE_DIR=/github/workspace/ccache" >> $GITHUB_ENV
 
-    - name: Sync Kernel Source
-      run: |
-        ./build.sh sync_source
+      - name: 设置 ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: kernel-build-${{ github.sha }}
+          max-size: 5G
 
-    - name: Setup Dependencies
-      run: |
-        ./build.sh setup_environment
+      - name: 运行 build.sh 脚本
+        run: |
+          cd $SOURCE_PATH
+          chmod +x build.sh
+          sudo -u builder ./build.sh
+        env:
+          MAKEFLAGS: "-j$(nproc --all)"
 
-    - name: Configure Kernel Features
-      run: |
-        if [ "$CONFIG_KERNELSU" = "true" ]; then
-          ./build.sh setup_kernelsu
-        fi
-        if [ "$CONFIG_DOCKER" = "true" ]; then
-          ./build.sh docker_support
-        fi
-        if [ "$CONFIG_ROOTGUARD" = "true" ]; then
-          ./build.sh compile_rootguard
-        fi
+      - name: 显示 ccache 统计信息
+        run: ccache -s
 
-    - name: Build Kernel
-      run: |
-        ./build.sh build_kernel
+      - name: 查找编译结果
+        id: find_artifacts
+        run: |
+          echo "zip_file=$(ls $SOURCE_PATH/*.zip | grep -v backup || true)" >> $GITHUB_OUTPUT
+          echo "rootguard_file=$(ls $SOURCE_PATH/rootguard-*.zip || true)" >> $GITHUB_OUTPUT
 
-    - name: Create AnyKernel3 Zip
-      run: |
-        ./build.sh make_anykernel3_zip
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: kernel-builds
-        path: |
-          *.zip
-          compile.log
-        retention-days: 30
-
-    - name: Clean Workspace
-      if: always()
-      run: |
-        rm -rf ./*
+      - name: 上传编译结果
+        uses: actions/upload-artifact@v3
+        with:
+          name: kernel-build-${{ github.event.inputs.device }}-${{ github.sha }}
+          path: |
+            ${{ steps.find_artifacts.outputs.zip_file }}
+            ${{ steps.find_artifacts.outputs.rootguard_file }}
+          retention-days: 7    
