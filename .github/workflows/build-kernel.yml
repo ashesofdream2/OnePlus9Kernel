@@ -45,7 +45,6 @@ jobs:
     container:
       image: archlinux:base-devel
       options: --privileged -v /workspace:/workspace
-      working_directory: /workspace
 
     steps:
       - name: 安装基础工具和 repo
