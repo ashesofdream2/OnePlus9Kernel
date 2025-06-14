@@ -22,7 +22,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          
+
+      - name: Enable multilib repository
+        run: |
+          # 启用multilib仓库
+          sed -i 's/^#Include = /Include = /g' /etc/pacman.d/mirrorlist
+          sed -i 's/^#\s*\[multilib\]/[multilib]/g' /etc/pacman.conf
+          sed -i 's/^#\s*Include = \/etc\/pacman.d\/mirrorlist/Include = \/etc\/pacman.d\/mirrorlist/g' /etc/pacman.conf
+          pacman -Syy --noconfirm
+
+      - name: Install base and multilib dependencies
+        run: |
+          pacman -S --noconfirm base-devel python python3 curl wget zstd sudo
+          pacman -S --noconfirm --needed multilib-devel lib32-ncurses lib32-readline lib32-zlib
 
       - name: Setup yay
         run: |
@@ -32,6 +44,26 @@ jobs:
           cd /home/builder/yay
           sudo -u builder makepkg -si --noconfirm
           cd "$GITHUB_WORKSPACE"
+
+      - name: 安装python2-bin（若需要）
+        run: |
+          if pacman -Qs python2-bin &>/dev/null; then
+            pacman -S --noconfirm python2-bin
+          else
+            sudo -u builder yay -S python2-bin --noconfirm
+          fi
+          cd "$GITHUB_WORKSPACE"
+
+      - name: Install repo tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo 'export PATH=~/bin:$PATH' >> ~/.bashrc
+          echo 'export PYTHON=/usr/bin/python3' >> ~/.bashrc  # 确保使用Python3
+          source ~/.bashrc
+          repo --version
+
 
 
       - name: Install repo tool
