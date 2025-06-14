@@ -12,7 +12,7 @@ setup_export() {
     export KERNELSU_TAG=main        # Optional values: main/NULL/'v\d+(\.\d+)*'
     export CONFIG_DOCKER=false      # Optional values: true/false
     export CONFIG_ROOTGUARD=false   # Optional values: true/false
-    export DEVICE_NAME=LUNAA          # Optional values: 9P/9RT/LUNAA
+    export DEVICE_NAME=9P          # Optional values: 9P/9RT/LUNAA
     export CONFIG_LTO=full          # Optional values: none/thin/full
 }
 
