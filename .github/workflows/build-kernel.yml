@@ -1,64 +1,81 @@
-name: Build Kernel
+name: Kernel Build
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
+    inputs:
+      device_name:
+        description: '设备名称 (9P/9RT/LUNAA)'
+        required: true
+        default: 'LUNAA'
+      enable_kernelsu:
+        description: '启用 KernelSU'
+        required: true
+        default: 'true'
+        type: boolean
+      enable_docker:
+        description: '启用 Docker 支持'
+        required: true
+        default: 'false'
+        type: boolean
+      enable_rootguard:
+        description: '启用 RootGuard'
+        required: true
+        default: 'false'
+        type: boolean
+      lto_type:
+        description: 'LTO 类型 (none/thin/full)'
+        required: true
+        default: 'full'
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # 使用Ubuntu环境而非Arch Linux
-    
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+      options: --privileged
+
     steps:
-      - name: Install essential tools
+      - name: 安装基础工具
         run: |
-          sudo apt-get update
-          sudo apt-get install -y git python3 openjdk-11-jdk bc bison build-essential \
-            ccache curl flex g++-multilib gcc-multilib gnupg gperf imagemagick \
-            lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 \
-            libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync \
-            schedtool squashfs-tools xsltproc zip zlib1g-dev
-
-      - name: Install repo tool
+          pacman -Syu --noconfirm
+          pacman -S git wget curl python2 --noconfirm
+      
+      - name: 安装 yay
         run: |
-          mkdir -p ~/bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-          chmod a+x ~/bin/repo
-          echo 'export PATH=~/bin:$PATH' >> ~/.bashrc
-          source ~/.bashrc
-          repo --version
-
-      - name: Checkout repository
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          sudo -u builder git clone https://aur.archlinux.org/yay.git /home/builder/yay
+          cd /home/builder/yay
+          sudo -u builder makepkg -si --noconfirm
+          rm -rf /home/builder/yay
+      
+      - name: 克隆仓库
         uses: actions/checkout@v4
         with:
-          submodules: recursive
-
-      - name: Set up ccache
+          path: source
+      
+      - name: 设置环境变量
         run: |
-          echo 'export USE_CCACHE=1' >> ~/.bashrc
-          echo 'export CCACHE_SIZE=50G' >> ~/.bashrc
-          ccache -M 50G
-          source ~/.bashrc
-
-
-      - name: Run kernel build script
+          echo "SOURCE_PATH=$(pwd)/source" >> $GITHUB_ENV
+          echo "CLANG_PATH=$(pwd)/source/prebuilts-master/clang/host/linux-x86/clang-r450784d/" >> $GITHUB_ENV
+          echo "CONFIG_KERNELSU=${{ github.event.inputs.enable_kernelsu }}" >> $GITHUB_ENV
+          echo "KERNELSU_TAG=main" >> $GITHUB_ENV
+          echo "CONFIG_DOCKER=${{ github.event.inputs.enable_docker }}" >> $GITHUB_ENV
+          echo "CONFIG_ROOTGUARD=${{ github.event.inputs.enable_rootguard }}" >> $GITHUB_ENV
+          echo "DEVICE_NAME=${{ github.event.inputs.device_name }}" >> $GITHUB_ENV
+          echo "CONFIG_LTO=${{ github.event.inputs.lto_type }}" >> $GITHUB_ENV
+      
+      - name: 执行 build.sh 脚本
         run: |
-          export PATH=~/bin:$PATH  # 确保repo在PATH中
+          cd $SOURCE_PATH
           chmod +x build.sh
           ./build.sh
-        env:
-          CONFIG_KERNELSU: true
-          KERNELSU_TAG: main
-          CONFIG_DOCKER: false
-          CONFIG_ROOTGUARD: false
-          DEVICE_NAME: LUNAA
-          CONFIG_LTO: full
-
-      - name: Upload kernel artifacts
+      
+      - name: 查找并上传编译产物
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-build
+          name: kernel-build-artifacts
           path: |
-            *.zip
-            compile.log
-          retention-days: 7  # 构建产物保留7天
+            $SOURCE_PATH/*.zip
+            $SOURCE_PATH/compile.log
+          retention-days: 7    
