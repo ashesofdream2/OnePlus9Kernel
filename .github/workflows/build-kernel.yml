@@ -38,7 +38,7 @@ jobs:
       - name: 初始化 Systemd 环境
         run: |
           # 安装必要的 systemd 组件
-          pacman -Syu --noconfirm systemd systemd-container dbus
+          pacman -Syu --noconfirm systemd dbus
           
           # 配置容器环境
           echo "nameserver 8.8.8.8" > /etc/resolv.conf
