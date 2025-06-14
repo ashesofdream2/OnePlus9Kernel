@@ -12,7 +12,7 @@ setup_export() {
     export KERNELSU_TAG=main        # Optional values: main/NULL/'v\d+(\.\d+)*'
     export CONFIG_DOCKER=false      # Optional values: true/false
     export CONFIG_ROOTGUARD=false   # Optional values: true/false
-    export DEVICE_NAME=9RT          # Optional values: 9P/9RT/LUNAA
+    export DEVICE_NAME=LUNAA          # Optional values: 9P/9RT/LUNAA
     export CONFIG_LTO=full          # Optional values: none/thin/full
 }
 
@@ -167,9 +167,9 @@ compile_rootguard() {
 }
 
 build_kernel() {
-    cd $SOURCE_PATH/kernel/msm-5.4
-    wget https://gist.githubusercontent.com/natsumerinchan/77d5ad9ea42b5a1b4667de9f54c69d8e/raw/03cbe567e798cef5261f551668310067a878ffef/0003-Makefile-Use-CCACHE-for-faster-compilation.patch
-    git apply ./0003-Makefile-Use-CCACHE-for-faster-compilation.patch
+    # cd $SOURCE_PATH/kernel/msm-5.4
+    # wget https://gist.githubusercontent.com/natsumerinchan/77d5ad9ea42b5a1b4667de9f54c69d8e/raw/03cbe567e798cef5261f551668310067a878ffef/0003-Makefile-Use-CCACHE-for-faster-compilation.patch
+    # git apply ./0003-Makefile-Use-CCACHE-for-faster-compilation.patch
     cd $SOURCE_PATH
     sed -i s/build-user/mvaisakh/g build/_setup_env.sh
     sed -i s/build-host/statixos/g build/_setup_env.sh
