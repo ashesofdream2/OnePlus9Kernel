@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     container: 
       image: archlinux:latest
-      options: --privileged  # 需要特权模式用于内核编译
+      options: --cap-add=SYS_ADMIN --security-opt seccomp=unconfined
 
     steps:
     - name: Checkout Repository
