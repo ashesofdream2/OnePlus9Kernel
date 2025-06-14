@@ -41,9 +41,25 @@ jobs:
           cd "$GITHUB_WORKSPACE"  # 确保回到工作目录
           pwd  # 打印当前目录，用于调试
           ls -la  # 列出目录内容，用于调试
+          
+      - name: Install repo tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo 'export PATH=~/bin:$PATH' >> ~/.bashrc
+          source ~/.bashrc
+          repo --version  # 验证安装
+
+      - name: Install lineageos-devel and python2-bin
+        run: |
+          sudo -u builder yay -S lineageos-devel python2-bin --noconfirm
+          cd "$GITHUB_WORKSPACE"
+
 
       - name: Run kernel build script
         run: |
+          export PATH=~/bin:$PATH  # 确保repo在PATH中
           chmod +x build.sh
           ./build.sh
         env:
@@ -51,7 +67,7 @@ jobs:
           KERNELSU_TAG: main
           CONFIG_DOCKER: false
           CONFIG_ROOTGUARD: false
-          DEVICE_NAME: 9RT
+          DEVICE_NAME: LUNAA
           CONFIG_LTO: full
 
       - name: Upload kernel artifacts
