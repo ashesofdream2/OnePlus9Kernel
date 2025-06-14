@@ -38,7 +38,7 @@ jobs:
       - name: 安装基础工具
         run: |
           pacman -Syu --noconfirm
-          pacman -S git wget curl python2 --noconfirm
+          pacman -S git wget curl  --noconfirm
       
       - name: 安装 yay
         run: |
