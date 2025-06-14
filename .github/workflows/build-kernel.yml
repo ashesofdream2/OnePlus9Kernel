@@ -22,6 +22,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          
+      - name: Enable multilib repository
+        run: |
+          sed -i 's/^#Include = /Include = /g' /etc/pacman.d/mirrorlist
+          sed -i '/\[multilib\]/,/Include/' -e 's/^#//' /etc/pacman.conf
+          pacman -Syy --noconfirm
+
 
       - name: Install base and multilib dependencies
         run: |
