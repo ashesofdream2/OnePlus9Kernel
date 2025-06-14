@@ -61,7 +61,7 @@ jobs:
           sudo apt-get install -y arch-install-scripts
           
           # 或者直接使用 Ubuntu 包管理器安装必要工具
-          sudo apt-get install -y git wget curl python3 openssh
+          sudo apt-get install -y git wget curl python3
           
       - name: 安装 repo 工具
         run: |
