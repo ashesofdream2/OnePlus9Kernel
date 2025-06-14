@@ -35,6 +35,16 @@ jobs:
       options: --privileged
 
     steps:
+      - name: Configure Systemd
+        run: |
+          # 安装必要的工具
+          sudo apt-get update
+          sudo apt-get install -y systemd-container
+
+          # 创建systemd所需的目录结构
+          sudo mkdir -p /run/systemd/system
+          sudo touch /run/systemd/system/container.conf
+
       - name: 安装基础工具和 SSH 客户端
         run: |
           pacman -Syu --noconfirm
