@@ -18,12 +18,17 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S base-devel git wget curl zstd tar python3 openssh --noconfirm
-          # 安装 repo 工具
+          
+          # 安装 repo 工具（明确设置 PATH 并验证）
           mkdir -p ~/bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          curl -fsSL https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+x ~/bin/repo
-          echo 'export PATH=~/bin:$PATH' >> ~/.bashrc
-          source ~/.bashrc
+          
+          # 临时生效 PATH（避免 .bashrc 未加载问题）
+          export PATH=~/bin:$PATH
+          echo "当前 PATH: $PATH"
+          repo --version  # 验证 repo 安装
+          
           useradd -m builder
           echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
           
@@ -35,10 +40,9 @@ jobs:
 
       - name: Execute build script
         run: |
-          # 设置 PATH 包含 repo
-          export PATH=~/bin:$PATH
-          chmod +x build.sh
-          sudo -u builder ./build.sh
+          # 为 builder 用户设置 PATH（关键修改）
+          echo 'export PATH=~/bin:$PATH' >> /home/builder/.bashrc
+          sudo -u builder bash -c "source /home/builder/.bashrc && chmod +x build.sh && ./build.sh"
         env:
           CONFIG_KERNELSU: true
           KERNELSU_TAG: main
