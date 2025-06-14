@@ -33,6 +33,7 @@ jobs:
         run: |
           # 克隆仓库并安装
           git clone https://aur.archlinux.org/yay-git.git
+          sudo chmod 777 yay-git
           cd yay-git
           sudo -u builder bash -c "makepkg -si --noconfirm"
           
