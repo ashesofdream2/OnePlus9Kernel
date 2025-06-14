@@ -36,7 +36,7 @@ jobs:
       - name: 安装必要工具
         run: |
           sudo apt-get update
-          sudo apt-get install -y systemd-container dbus socat
+          sudo apt-get install -y systemd-container dbus socat openssh-client
           
       - name: 配置 systemd 环境
         run: |
