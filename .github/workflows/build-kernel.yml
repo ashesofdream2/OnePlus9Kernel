@@ -13,6 +13,14 @@ jobs:
       options: --privileged  # 需要特权模式来安装某些依赖
 
     steps:
+      - name: Install Git
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm git
+
+      - name: Check Git version
+        run: git --version
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
