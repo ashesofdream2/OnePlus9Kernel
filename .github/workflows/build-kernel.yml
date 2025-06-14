@@ -68,22 +68,6 @@ jobs:
           ls -la /workspace
         working-directory: /workspace
 
-      - name: 准备环境变量
-        run: |
-          echo "LC_ALL=C" >> $GITHUB_ENV
-          echo "SOURCE_PATH=/workspace/android_kernel_manifest" >> $GITHUB_ENV
-          echo "CLANG_PATH=/workspace/android_kernel_manifest/prebuilts-master/clang/host/linux-x86/clang-r450784d" >> $GITHUB_ENV
-          echo "CONFIG_KERNELSU=${{ github.event.inputs.enable_kernelsu }}" >> $GITHUB_ENV
-          echo "KERNELSU_TAG=main" >> $GITHUB_ENV
-          echo "CONFIG_DOCKER=${{ github.event.inputs.enable_docker }}" >> $GITHUB_ENV
-          echo "CONFIG_ROOTGUARD=${{ github.event.inputs.enable_rootguard }}" >> $GITHUB_ENV
-          echo "DEVICE_NAME=${{ github.event.inputs.device }}" >> $GITHUB_ENV
-          echo "CONFIG_LTO=${{ github.event.inputs.lto_type }}" >> $GITHUB_ENV
-          echo "USE_CCACHE=1" >> $GITHUB_ENV
-          echo "CCACHE_MAXSIZE=5G" >> $GITHUB_ENV
-          echo "CCACHE_DIR=/workspace/ccache" >> $GITHUB_ENV
-        working-directory: /workspace
-
       - name: 设置 ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
