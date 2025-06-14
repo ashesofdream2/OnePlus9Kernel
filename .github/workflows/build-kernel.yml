@@ -35,10 +35,10 @@ jobs:
       options: --privileged
 
     steps:
-      - name: 安装基础工具
+      - name: 安装基础工具和 SSH 客户端
         run: |
           pacman -Syu --noconfirm
-          pacman -S git wget curl python3 --noconfirm
+          pacman -S git wget curl python3 openssh --noconfirm
           
       - name: 安装 repo 工具
         run: |
